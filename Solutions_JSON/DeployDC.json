@@ -174,7 +174,7 @@
                 "osProfile": {
                     "computerName": "[concat(variables('vmprename'),'DC01')]",
                     "adminUsername": "[parameters('adminUser')]",
-                    "adminPassword": "[parameters('adminPassword')]",
+                    "adminPassword": "PrivateSettingsRef:adminPassword",
                     "windowsConfiguration": {
                         "provisionVMAgent": true,
                         "enableAutomaticUpdates": true,
@@ -240,7 +240,7 @@
                 },
                 "settings": {
                     "wmfVersion": "latest",
-                    "modulesUrl": "https://github.com/microsoft/WhatTheHack/blob/master/037-AzureVirtualDesktop/Student/Resources/dsc/ActiveDirectoryForest.zip?raw=true",
+                    "modulesUrl": "https://github.com/JCoreMS/Scripts/blob/master/Solutions_JSON/ActiveDirectoryForest.zip?raw=true",
                     "configurationFunction": "ActiveDirectoryForest.ps1\\ActiveDirectoryForest",
                     "properties": {
                         "Domain": "[parameters('AD_DomainName_FQDN')]",
