@@ -1,3 +1,17 @@
+# Variables 
+Param(
+    [Parameter(Mandatory=$true,
+    ParameterSetName="DomainNameFQDN")]
+    [string[]]
+    $domainname,
+
+    [Parameter(Mandatory=$true,
+    ParameterSetName="SafeModePassword")]
+    [string[]]
+    $SafeModePassword,
+)
+
+
 #  Configure Data Disk
 Initialize-Disk 2 -Confirm:$false
 new-partition -disknumber 2 -usemaximumsize -DriveLetter S | format-volume -filesystem NTFS -newfilesystemlabel SYSVOL -Force -Confirm:$false
@@ -12,9 +26,9 @@ Wait-Job -Name addFeature
 Get-WindowsFeature | Where installed >>$featureLogPath
 
 # Create New Forest, add Domain Controller
-$SafeModePassword = ConvertTo-SecureString "P@lmtree5lab" -AsPlainText -Force
-$domainname = "corefamily.net"
-$netbiosName = "COREFAMILY"
+#$SafeModePassword = ConvertTo-SecureString "P@ssw0rd12345" -AsPlainText -Force
+#$domainname = "lab.corefamily.net"
+$netbiosName = $domainname.split(".")[0]
 Import-Module ADDSDeployment
 Install-ADDSForest -CreateDnsDelegation:$false `
 -DatabasePath "S:\Windows\NTDS" `
