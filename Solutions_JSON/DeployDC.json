@@ -73,6 +73,7 @@
     "variables": {
         "nsgname": "[toLower(concat('nsg-',parameters('location'),'-',parameters('DesiredName')))]",
         "vmprename": "[concat('vm',parameters('DesiredName'))]"
+        "timestamp": "[utcNow()]"
     },
     "resources": [
         {
@@ -232,7 +233,7 @@
                 "type": "DSC",
                 "typeHandlerVersion": "2.77",
                 "autoUpgradeMinorVersion": true,
-                "forceUpdateTag": "[parameters('Timestamp')]",
+                "forceUpdateTag": "[variables('Timestamp')]",
                 "protectedSettings": {
                     "Items": {
                         "VmPassword": "[parameters('adminPassword')]"
