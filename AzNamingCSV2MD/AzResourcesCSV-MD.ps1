@@ -55,10 +55,12 @@ Foreach($resource in $Resources){
         If($Resources.IndexOf($resource) -eq 0){
   #          $arrList += "`r`n### $strCurrProvider`r`n`r`n  "
             $arrList += "| Asset Type | Resource provider namespace/Entity | Abbreviation |  `r`n|--|--|--|`r`n  "}
-    
-        $intStart = (($resource.resource).indexof('/')+1)
-        $strCurrResource = $resource.resource.Substring($intStart)
-    
+        
+        #Removes initial ./Microsoft section of name
+  #      $intStart = (($resource.resource).indexof('/')+1)
+  #      $strCurrResource = $resource.resource.Substring($intStart)
+            
+        $strCurrResource = $resource.resource
         #Resource provider asset type | namespace/Entity |  Abbreviation
         $arrList += '| `' + $resource.assetType + '`| `' + $strCurrResource + '` | `' + $resource.shortname + '` |' + "`r`n  "
 <#
@@ -83,4 +85,4 @@ Review recommendations for tagging your Azure resources and assets.
 
 "@
 
-$Header + $arrList + $Footer | Out-File -FilePath ".\resource-abbreviations_updatedv2.md"
+$Header + $arrList + $Footer | Out-File -FilePath ".\resource-abbreviations_updatedv3.md"
