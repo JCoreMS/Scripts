@@ -43,26 +43,31 @@ This list provides recommended abbreviations for various Azure resource types to
 Foreach($resource in $Resources){
     #Accomodate for shortnames that are blank or duplicate from previous in spreadsheet
     If(($resource.shortName -ne "") -and ($resource.shortName -ne $prevShortname)){
+<#
         #Trim off leading namespace
         $strResource = $resource.resource -split '/'
         $strCurrProvider = $strResource[0]
         $strNextProvider = ($Resources[($Resources.IndexOf($resource)+1)].resource -split '/')[0]
+ #>
+        
     
         #Write Header on first run
         If($Resources.IndexOf($resource) -eq 0){
-            $arrList += "`r`n### $strCurrProvider`r`n`r`n"
-            $arrList += "| Resource provider namespace/Entity | Abbreviation |  `r`n|--|--|`r`n"}
+  #          $arrList += "`r`n### $strCurrProvider`r`n`r`n  "
+            $arrList += "| Asset Type | Resource provider namespace/Entity | Abbreviation |  `r`n|--|--|--|`r`n  "}
     
         $intStart = (($resource.resource).indexof('/')+1)
         $strCurrResource = $resource.resource.Substring($intStart)
     
-        #Resource provider namespace/Entity   |     Abbreviation
-        $arrList += '| `' + $strCurrResource + '` | `' + $resource.shortname + '` |' + "`r`n"
-    
+        #Resource provider asset type | namespace/Entity |  Abbreviation
+        $arrList += '| `' + $resource.assetType + '`| `' + $strCurrResource + '` | `' + $resource.shortname + '` |' + "`r`n  "
+<#
+        #New Section - If our provider isn't the same write new header/ table
         If(($strCurrProvider -ne $strNextProvider) -and ($strNextProvider -ne "")){
-            $arrList += "`r`n### $strNextProvider`r`n"
-            $arrList += "`r`n| Resource provider namespace/Entity | Abbreviation |  `r`n|--|--|`r`n"
+            $arrList += "`r`n### $strNextProvider`r`n  "
+            $arrList += "`r`n| Asset Type | Resource provider namespace/Entity | Abbreviation |  `r`n|--|--|--|`r`n  "
             } # End if
+#>
         } #end if
     $prevShortName = $Resource.shortName
     } # End Foreach
@@ -78,4 +83,4 @@ Review recommendations for tagging your Azure resources and assets.
 
 "@
 
-$Header + $arrList + $Footer | Out-File -FilePath ".\resource-abbreviations_updated.md"
+$Header + $arrList + $Footer | Out-File -FilePath ".\resource-abbreviations_updatedv2.md"
