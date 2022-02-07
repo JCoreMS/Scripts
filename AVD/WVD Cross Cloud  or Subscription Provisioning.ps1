@@ -77,3 +77,8 @@ Foreach ($VM in $VMs) {
 ### Clean-up the local file
 #################################
 Remove-Item .\RegNewPool.PS1
+
+
+1. Remove from Gov Host Pool
+2. Get token from commercial host pool
+2. Run script against VM in portal to register in commercial 

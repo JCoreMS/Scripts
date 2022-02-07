@@ -62,48 +62,29 @@
                 "description": "Virtual Network Address Space in CIDR Format"
             }
         },
-        "DCBuildScript": {
+        "TimeStamp": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/JCoreMS/Scripts/master/Create1stCoreFamDC_Remote.ps1",
+            "defaultValue": "[utcNow()]",
             "metadata": {
-                "description": "Script Location to Promote and Configure Domain Controller"
+                "description": "Used to ensure deployment is unique."
             }
-        }           
+        }
     },
     "variables": {
         "nsgname": "[toLower(concat('nsg-',parameters('location'),'-',parameters('DesiredName')))]",
-        "vmprename": "[concat('vm',parameters('DesiredName'))]"
-        "timestamp": "[utcNow()]"
+        "vmprename": "[concat('vm',parameters('DesiredName'))]",
+        "SubnetOctet1": "[split(parameters('VNetAddressSpace'),'.')[0]]",
+        "SubnetOctet2": "[split(parameters('VNetAddressSpace'),'.')[1]]",
+        "NetBiOSName": "[split(parameters('AD_DomainName_FQDN'),'.')[0]]",
+        "BastionSubNet": "[concat(variables('SubnetOctet1'),'.',variables('SubnetOctet2'),'.200.0/27')]",
+        "VNetName": "[concat('vnet-',parameters('location'),'-',parameters('DesiredName'))]",
+        "SubnetName": "[concat('sub-',parameters('location'),'-',parameters('DesiredName'))]"
     },
     "resources": [
         {
-            "type": "Microsoft.Network/networkSecurityGroups",
-            "apiVersion": "2019-04-01",
-            "name": "[variables('nsgname')]",
-            "location": "[parameters('location')]",
-            "properties": {
-                "securityRules": [
-                    {
-                        "name": "AllowRDP",
-                        "properties": {
-                            "description": "description",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "3389",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 100,
-                            "direction": "Inbound"
-                        }
-                    }
-                ]
-            }
-        },
-        {
             "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2019-11-01",
-            "name": "[concat('vnet-',parameters('location'),parameters('DesiredName'))]",
+            "apiVersion": "2020-11-01",
+            "name": "[concat('vnet-',parameters('location'),'-',parameters('DesiredName'))]",
             "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgname'))]"
@@ -121,7 +102,7 @@
                     {
                         "name": "[concat('sub-',parameters('location'),'-',parameters('DesiredName'))]",
                         "properties": {
-                            "addressPrefix": "[concat(split(parameters('VNetAddressSpace'),'/')[0],'/24')]", 
+                            "addressPrefix": "[concat(split(parameters('VNetAddressSpace'),'/')[0],'/24')]",
                             "networkSecurityGroup": {
                                 "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgname'))]"
                             }
@@ -131,14 +112,102 @@
             }
         },
         {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-04-01",
+            "name": "[variables('nsgname')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowRDP",
+                        "properties": {
+                            "description": "Placeholder for RDP - initially set to deny",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Deny",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+/*         {
+            "apiVersion": "2020-11-01",
+            "type": "Microsoft.Network/publicIpAddresses",
+            "name": "[concat('pip-bastion-',parameters('location'),'-',parameters('DesiredName'))]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks',variables('VNetName'))]"
+            ],
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Static"
+            },
+            "tags": {}
+        }, */
+         {
+            "apiVersion": "2020-11-01",
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "name": "[concat(variables('VNetName'),'/', variables('SubnetName'))]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks',variables('VNetName'))]"
+            ],
+            "properties": {
+                "addressPrefix": "[parameters('VNetAddressSpace')]"
+            }
+        },
+/*      {
+            "apiVersion": "2020-11-01",
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "name": "[concat(variables('VNetName'),'/AzureBastionSubnet')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks',variables('VNetName'))]"
+            ],
+            "properties": {
+                "addressPrefix": "10.20.200.0/27"    // Check the Prefix required for Bastion
+            }
+        },
+        {
+            "apiVersion": "2020-11-01",
+            "type": "Microsoft.Network/bastionHosts",
+            "name": "[concat(parameters('location'),'-',parameters('DesiredName'),'-BastionHost')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/PublicIPAddresses',concat('pip-bastion-',parameters('location'),'-',parameters('DesiredName')))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "IpConf",
+                        "properties": {
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',variables('VNetName'),'AzureBastionSubnet')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIpAddresses', concat('pip-bastion-',parameters('location'),'-',parameters('DesiredName')))]"
+                            }
+                        }
+                    }
+                ]
+            },
+            "tags": {}
+        }, */
+        {
             "type": "Microsoft.Network/networkInterfaces",
-            "apiVersion": "2019-11-01",
+            "apiVersion": "2020-11-01",
             "name": "[concat('nic-',parameters('DesiredName'),'-',variables('vmprename'),'DC01')]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', concat('vnet-',parameters('location'),parameters('DesiredName')))]"
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets',variables('VNetName'), variables('SubnetName'))]"
             ],
-    
             "tags": {
                 "displayName": "[concat(parameters('DesiredName'), 'Virtual Network Interface')]"
             },
@@ -149,13 +218,13 @@
                         "properties": {
                             "privateIPAllocationMethod": "Dynamic",
                             "subnet": {
-                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', concat('vnet-',parameters('location'),parameters('DesiredName')), concat('sub-',parameters('location'),'-',parameters('DesiredName')))]"
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNetName'), variables('SubnetName'))]"
                             }
                         }
                     }
                 ]
             }
-            
+
         },
         {
             "type": "Microsoft.Compute/virtualMachines",
@@ -163,7 +232,7 @@
             "name": "[concat(variables('vmprename'),'DC01')]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                 "[resourceId('Microsoft.Network/networkInterfaces', concat('nic-',parameters('DesiredName'),'-',variables('vmprename'),'DC01'))]"
+                "[resourceId('Microsoft.Network/networkInterfaces', concat('nic-',parameters('DesiredName'),'-',variables('vmprename'),'DC01'))]"
             ],
             "tags": {
                 "displayName": "[concat(variables('vmprename'),'DC01')]"
@@ -199,12 +268,12 @@
                     },
                     "dataDisks": [
                         {
-                        "lun": 0,
+                            "lun": 0,
                             "name": "[concat(variables('vmprename'),'DC01-SysvolDisk')]",
                             "caching": "None",
                             "createOption": "Empty",
                             "diskSizeGB": 32,
-                            "managedDisk":{
+                            "managedDisk": {
                                 "storageAccountType": "StandardSSD_LRS"
                             }
                         }
@@ -220,23 +289,22 @@
             }
         },
         {
-            "comments": "---------- DSC EXTENSION > DC 01 ----------",
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat(variables('vmprename'),'DC01-0/DSC')]",
             "apiVersion": "2019-07-01",
+            "name": "[concat(variables('vmprename'),'DC01/DSC')]",
             "location": "[parameters('Location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('vmprename'),'DC01'))]"
+                "[resourceID('Microsoft.compute/virtualMachines',concat(variables('vmprename'),'DC01'))]"
             ],
             "properties": {
                 "publisher": "Microsoft.Powershell",
                 "type": "DSC",
                 "typeHandlerVersion": "2.77",
                 "autoUpgradeMinorVersion": true,
-                "forceUpdateTag": "[variables('Timestamp')]",
+                "forceUpdateTag": "[parameters('Timestamp')]",
                 "protectedSettings": {
                     "Items": {
-                        "VmPassword": "[parameters('adminPassword')]"
+                        "adminPassword": "[parameters('adminPassword')]"
                     }
                 },
                 "settings": {
@@ -255,5 +323,10 @@
         }
     ]
 }
-
-
+//         "message": "VM has reported a failure when processing extension 'DSC'. Error message: \"DSC Configuration 'ActiveDirectoryForest' completed with error(s).
+// Following are the first few: WinRM cannot process the request. The following error with errorcode 0x80090350 occurred while using Negotiate authentication: An unknown
+// security error occurred.  \r\n Possible causes are:\r\n  -The user name or password specified are invalid.\r\n  -Kerberos is used when no authentication method and no user name are specified.\r\n 
+// -Kerberos accepts domain user names, but not local user names.\r\n  -The Service Principal Name (SPN) for the remote computer name and port does not exist.\r\n  -The client and remote computers
+// are in different domains and there is no trust between the two domains.\r\n After checking for the above issues, try the following:\r\n  -Check the Event Viewer for events related to authentication.\r\n
+//  -Change the authentication method; add the destination computer to the WinRM TrustedHosts configuration setting or use HTTPS transport.\r\n Note that computers in the TrustedHosts list might not be authenticated.\r\n 
+//  -For more information about WinRM configuration, run the following command: winrm help config.\"\r\n\r\nMore information on troubleshooting is available at https://aka.ms/VMExtensionDSCWindowsTroubleshoot "
