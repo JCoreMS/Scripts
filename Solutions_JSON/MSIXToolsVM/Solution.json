@@ -203,7 +203,7 @@
                         "typeHandlerVersion": "1.10",
                         "autoUpgradeMinorVersion": true,
                         "settings": {
-                            "fileUris": [ "https://raw.githubusercontent.com/jamasten/Azure/master/solutions/msixAppAttachImage/scripts/New-AzureMsixAppAttachImage.ps1" ],
+                            "fileUris": [ "https://raw.githubusercontent.com/JCoreMS/Scripts/master/Solutions_JSON/MSIXToolsVM/Scripts/New-AzureMsixAppAttachImage.ps1" ],
                             "timestamp": "[parameters('Timestamp')]"
                         },
                         "protectedSettings": {
