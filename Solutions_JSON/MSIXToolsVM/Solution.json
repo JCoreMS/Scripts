@@ -20,7 +20,7 @@
         },
         "ImageSku": {
             "type": "string",
-            "defaultValue": "21h2-ent"
+            "defaultValue": "21h1-ent"
         },
         "ImageVersion": {
             "type": "string",
