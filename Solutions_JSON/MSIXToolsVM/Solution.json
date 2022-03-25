@@ -1,0 +1,217 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "DiskSku": {
+            "type": "string",
+            "defaultValue": "StandardSSD_LRS"
+        },
+        "FileShareName": {
+            "type": "string",
+            "defaultValue": "msix"
+        },
+        "ImageOffer": {
+            "type": "string",
+            "defaultValue": "Windows-10"
+        },
+        "ImagePublisher": {
+            "type": "string",
+            "defaultValue": "MicrosoftWindowsDesktop"
+        },
+        "ImageSku": {
+            "type": "string",
+            "defaultValue": "21h2-ent"
+        },
+        "ImageVersion": {
+            "type": "string",
+            "defaultValue": "latest"
+        },
+        "KeyVaultResourceId": {
+            "type": "string",
+            "defaultValue": "/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Identity/providers/Microsoft.KeyVault/vaults/kv-eastus2-AVD-SSO-Certs",
+            "metadata": {
+                "description": "The resource ID for the Key Vault containing the code signing certificate."
+            }
+        },
+        "KeyVaultSecretUrl": {
+            "type": "string",
+            "defaultValue": "https://kv-eastus2-avd-sso-certs.vault.azure.net/secrets/MSIXAppAttachLab/b1446c7025ce43839c1ce594770b7c84",
+            "metadata": {
+                "description": "The Key Vault secret URL for the code signing certificate stored as a base64 secret."
+            }
+        },
+        "Location": {
+            "type": "string",
+            "defaultValue": "eastus2"
+        },
+        "NicName": {
+            "type": "string",
+            "defaultValue": "nic-eus2-msix"
+        },
+        "StorageAccountKey": {
+            "type": "securestring"
+        },
+        "StorageAccountName": {
+            "type": "string",
+            "defaultValue": "storeus2avdmsix"
+        },
+        "SubnetName": {
+            "type": "string",
+            "defaultValue": "subnet-eastus2-AVDLab-Management"
+        },
+        "Tags": {
+            "type": "object",
+            "defaultValue": {}
+        },
+        "Timestamp": {
+            "type": "string",
+            "defaultValue": "[utcNow('yyyyMMddhhmmss')]"
+        },
+        "VirtualNetworkName": {
+            "type": "string",
+            "defaultValue": "vnet-EastUS2-AVDLab"
+        },
+        "VirtualNetworkResourceGroupName": {
+            "type": "string",
+            "defaultValue": "rg-eastus2-LandingZone"
+        },
+        "VmName": {
+            "type": "string",
+            "defaultValue": "vmAVD-MSIX"
+        },
+        "VmPassword": {
+            "type": "securestring"
+        },
+        "VmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2s_v3"
+        },
+        "VmUsername": {
+            "defaultValue": "jcore",
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "comments": "---------- NETWORK INTERFACES ----------",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-05-01",
+            "name": "[parameters('NicName')]",
+            "location": "[parameters('Location')]",
+            "tags": "[parameters('Tags')]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId(subscription().subscriptionId, parameters('VirtualNetworkResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets', parameters('VirtualNetworkName'), parameters('SubnetName'))]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false
+            }
+        },
+        {
+            "comments": "---------- VIRTUAL MACHINES ----------",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-07-01",
+            "name": "[parameters('VmName')]",
+            "location": "[parameters('Location')]",
+            "tags": "[parameters('Tags')]",
+            "dependsOn": [
+                "[parameters('NicName')]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('VmSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[parameters('ImagePublisher')]",
+                        "offer": "[parameters('ImageOffer')]",
+                        "sku": "[parameters('ImageSku')]",
+                        "version": "[parameters('ImageVersion')]"
+                    },
+                    "osDisk": {
+                        "osType": "Windows",
+                        "createOption": "FromImage",
+                        "caching": "None",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('DiskSku')]"
+                        },
+                        "diskSizeGB": 127
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[parameters('VmName')]",
+                    "adminUsername": "[parameters('VmUsername')]",
+                    "adminPassword": "[parameters('VmPassword')]",
+                    "windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": true
+                    },
+                    "secrets": [
+                        {
+                            "sourceVault": {
+                                "id": "[parameters('KeyVaultResourceId')]"
+                            },
+                            "vaultCertificates": [
+                                {
+                                    "certificateUrl": "[parameters('KeyVaultSecretUrl')]",
+                                    "certificateStore": "TrustedPeople"
+                                }
+                            ]
+                        }
+                    ],
+                    "allowExtensionOperations": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('NicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": false
+                    }
+                },
+                "licenseType": "Windows_Client"
+            },
+            "resources": [
+                {
+                    "comments": "---------- CUSTOM SCRIPT EXTENSION ----------",
+                    "type": "extensions",
+                    "apiVersion": "2020-12-01",
+                    "name": "CustomScriptExtension",
+                    "location": "[parameters('location')]",
+                    "dependsOn": [
+                        "[parameters('VmName')]"
+                    ],
+                    "tags": "[parameters('Tags')]",
+                    "properties": {
+                        "publisher": "Microsoft.Compute",
+                        "type": "CustomScriptExtension",
+                        "typeHandlerVersion": "1.10",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "fileUris": [ "https://raw.githubusercontent.com/jamasten/Azure/master/solutions/msixAppAttachImage/scripts/New-AzureMsixAppAttachImage.ps1" ],
+                            "timestamp": "[parameters('Timestamp')]"
+                        },
+                        "protectedSettings": {
+                            "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File New-AzureMsixAppAttachImage.ps1 -FileShareName ', parameters('FileShareName'), ' -StorageAccountKey ', parameters('StorageAccountKey'), ' -StorageAccountName ', parameters('StorageAccountName'))]"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

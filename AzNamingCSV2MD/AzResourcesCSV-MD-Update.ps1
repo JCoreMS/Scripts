@@ -12,36 +12,16 @@ the sample scripts or documentation, even if Microsoft has been advised of the  
 
 
 $Resources = import-csv -Path '.\resources.csv'
-$abbrevFile = Get-Content '.\resource-abbreviations.md'
+$abbrevFile = '.\resource-abbreviations.md'
 
+$HeaderLineNum = Get-ChildItem $abbrevFile | Select-String -Pattern '## Resource List in Alphabetical Order' | Select-Object -ExpandProperty linenumber
+$Header = Get-Content -Path $abbrevFile -TotalCount $HeaderLineNum
+
+$FooterLineNum = Get-ChildItem $abbrevFile | Select-String -Pattern '## Next steps' | Select-Object -ExpandProperty linenumber
+$Footer = Get-Content -Path $abbrevFile | Select-Object -Skip ($FooterLineNum-2)
 
 
 $arrList = @()
-
-$Header = @"
----
-title: Recommended abbreviations for Azure resource types
-description: Review recommended abbreviations to use for various Azure resource types when naming your resources and assets.
-author: BrianBlanchard
-ms.author: brblanch
-ms.date: 4/14/2021
-ms.topic: conceptual
-ms.service: cloud-adoption-framework
-ms.subservice: ready
-ms.custom: internal, readiness, fasttrack-edit
----
-
-# Recommended abbreviations for Azure resource types
-
-Azure workloads are typically composed of multiple resources and services. Including a naming component in your resource names that represents the type of the Azure resource makes it easier to visually recognize application or service components.
-
-This list provides recommended abbreviations for various Azure resource types to include in your naming conventions. These abbreviations are often used as prefixes in resource names, so each abbreviation is shown below followed by a hyphen (`-`), except for resource types that disallow hyphens in the resource name. Your naming convention might place the resource type abbreviation in a different location of the name if it's more suitable for your organization's needs.
-
-<!-- cSpell:ignoreRegExp `[a-z]+-?` -->
-
-## Resource List in Alphabetical Order
-
-"@
 
 Foreach($resource in $Resources){
     #Accomodate for shortnames that are blank or duplicate from previous in spreadsheet
@@ -50,25 +30,15 @@ Foreach($resource in $Resources){
     
         #Write Header on first run
         If($Resources.IndexOf($resource) -eq 0){
-            $arrList += "| Asset Type | Resource provider namespace/Entity | Abbreviation |  `r`n|--|--|--|`r`n  "}
+            $arrList += "`n| Asset Type | Resource provider namespace/Entity | Abbreviation |  `n|--|--|--|  "}
            
         $strCurrResource = $resource.resource
         #Resource provider asset type | namespace/Entity |  Abbreviation
-        $arrList += '| `' + $resource.assetType + '`| `' + $strCurrResource + '` | `' + $resource.shortname + '` |' + "`r`n  "
-
+       If($resource.staticValues -eq ""){
+            $arrList += '|' + $resource.assetType + '| ' + $strCurrResource + ' | `' + $resource.shortname + '` |  '
+            }
         } #end if
     $prevShortName = $Resource.shortName
     } # End Foreach
 
-$Footer = @"
-
-## Next steps
-
-Review recommendations for tagging your Azure resources and assets.
-
-> [!div class="nextstepaction"]
-> [Define your tagging strategy](./resource-tagging.md)
-
-"@
-
-$Header + $arrList + $Footer | Out-File -FilePath ".\resource-abbreviations_updatedv3.md"
+$Header + $arrList + $Footer | Out-File -FilePath ".\resource-abbreviations_updatedv6.md"
