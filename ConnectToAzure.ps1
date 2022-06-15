@@ -18,7 +18,7 @@ Select-AzSubscription -SubscriptionObject $Selection
 # ----------------------------------------------------------------
 
 $Deployment = "C:\GitRepo\AVDAlerts\solution.bicep"
-$paramFile = "C:\GitRepo\AVDAlerts\parameters_MAC.json"
+$paramFile = "C:\GitRepo\AVDAlerts\parameters.json"
 
 New-AzDeployment `
   -Name "TEST"  `
