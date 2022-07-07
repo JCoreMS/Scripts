@@ -18,12 +18,12 @@ Select-AzSubscription -SubscriptionObject $Selection
 # ----------------------------------------------------------------
 
 $Deployment = "C:\GitRepo\AVDAlerts\solution.bicep"
-$paramFile = "C:\GitRepo\AVDAlerts\parameters_MAC.json"
+$paramFile = "C:\GitRepo\AVDAlerts\parameters_MAG.json"
 
 New-AzDeployment `
   -Name "AVD-Alerts-Solution" `
   -TemplateParameterFile $paramfile `
-  -Location "East US 2" `
+  -Location "usgovvirginia" `
   -TemplateFile $Deployment
 
 $Deployment = "C:\GitRepo\AVDAlerts\modules\deploymentScript.bicep"
