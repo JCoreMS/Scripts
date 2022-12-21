@@ -1,8 +1,12 @@
 ##  UPDATED VERSION by JCore
 ##   Downloads and extracts needed module and prompts for needed information. No cut and paste needed!
 
-#  Need Line of site to Domain Controller to run script for domain join 
+## PRE_REQS
+#  RSAT for Active Directory
+#  Run from AD Domain Joined VM
+#  - Need Line of site to Domain Controller to run script for domain join 
 #  
+
 Install-Module az -Verbose -AllowClobber -Confirm:$true
 Import-module -Name ActiveDirectory
 
