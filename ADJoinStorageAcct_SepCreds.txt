@@ -1,0 +1,171 @@
+﻿$OU = "<input OU Path here>"  # Specify OU Path in Distinguished Name format (required)
+
+#####################################################################################################################
+#                                    1. AZURE ACTIONS 
+#####################################################################################################################
+
+#  ----------------------------------------------------------------------
+#     Connect/Select Subscription, Storage Acct and Resource Group
+#  ----------------------------------------------------------------------
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
+$Choice = $null
+# Azure Environment Selection
+$AzCloudChange = Read-Host "Connect to another Azure Cloud? (Y or N)"
+If($AzCloudChange.toUpper() -eq "Y"){
+    $List = @("1 - Azure US Government","2 - Azure China")
+    Foreach($item in $List){Write-Host $item}
+    $Choice = Read-Host -Prompt "Choose Number"
+}
+If($Choice -eq 1){$Environment = "AzureUSGovernment"}
+If($Choice -eq 2){$Environment = "AzureChinaCloud"}
+if($Choice -eq $null){$Environment = "AzureCloud"}
+
+Connect-AzAccount -Environment $Environment
+# Get Subscription based on list
+Write-Host "Getting Azure Subscription(s)" -ForegroundColor Yellow
+$Subs = Get-AzSubscription
+If(($Subs).count -gt 1){    # More than one sub, prompt
+    $num = 0
+    Write-Host "---> Which Subscription is the Storage Account in? (Select a Number)" -ForegroundColor Yellow
+    Foreach ($Sub in $Subs) { $num++; Write-Host $num":" $Sub.Name}
+    Write-Host ""
+    $selection = Read-Host -Prompt "Select Subscription"
+    $Subscription = $Subs.Item($Selection-1)
+    Write-Host "Setting Subscription to selected" -ForegroundColor Yellow
+    Select-AzSubscription -Subscription $Subscription.Name
+}
+Else{$Subscription = $Subs ;Write-Host "---> Only 1 subscription found, using that one: "$Subscription.Name}
+
+Set-AzContext -Subscription $Subscription | out-null
+
+# Get Storage Account(s) and Resource Group it's in
+Write-Host "Getting Azure Storage Accounts" -ForegroundColor Yellow
+$StoreAccts = Get-AzStorageAccount
+If(($StoreAccts).count -gt 1){    # More than one RG, prompt
+    $num = 0
+    Write-Host "---> Which Storage Account do you want to join to the domain? (Select a Number)" -ForegroundColor Yellow
+    Foreach ($StoreAcct in $StoreAccts) { $num++; Write-Host $num":" $StoreAcct.StorageAccountName}
+    Write-Host ""
+    $selection = Read-Host -Prompt "Select Storage Account"
+    $StoreAcct = $StoreAccts.Item($Selection-1)
+}
+Else{$StoreAcct = $StoreAccts}
+
+# Define parameters, $StorageAccountName currently has a maximum limit of 15 characters
+$ResourceGroupName = $StoreAcct.ResourceGroupName
+$StorageAccountName = $StoreAcct.StorageAccountName
+
+If($Environment -eq "AzureCloud"){$EnvironmentURL = "windows.net"}
+If($Environment -eq "AzureUSGovernment"){$EnvironmentURL = "usgovcloudapi.net"}
+If($Environment -eq "AzureChinaCloud"){$EnvironmentURL = "chinacloudapi.cn"}
+
+#  ----------------------------------------------------------------------
+#    AZURE ACTIONS - Storage Acct Set Kerb1 Key
+#  ----------------------------------------------------------------------
+
+# Create the Kerberos key on the storage account and get the Kerb1 key as the password for the AD identity 
+# to represent the storage account
+New-AzStorageAccountKey -ResourceGroupName $ResourceGroupName -Name $StorageAccountName -KeyName kerb1
+$AzKerbKey = Get-AzStorageAccountKey -ResourceGroupName $ResourceGroupName -Name $StorageAccountName -ListKerbKey | where-object{$_.Keyname -contains "kerb1"}
+# AD Computer Account Name must be 15 characters or less / truncate if needed
+If($StorageAccountName.Length -gt 15){$ADCompAcctName = $StorageAccountName.Substring(0,15)} 
+else{$ADCompAcctName = $StorageAccountName}
+
+$AzKerbKey1 = $AzKerbKey.value
+
+$inputForAD1 = @"
+`$ADCompAcctName = `"$ADCompAcctName`"  # Must be 15 chars or less! 
+`$StorageAcctName = `"$StorageAccountName`"
+`$OU = `"$OU`"  # Specific OU is desired in AD
+`$EnvironmentURL = `"$EnvironmentURL`"
+`$ResourceGroupName = `"$ResourceGroupName`"
+`$AzKerbKey = `"$AzKerbKey1`"
+`$SPN = `"cifs/`$StorageAcctName.file.core.`$EnvironmentURL`"
+
+New-ADComputer -Name `$ADCompAcctName -Path `$OU -Description "Azure AD Storage Account which facilitates Kerberos Authentication" -KerberosEncryptionType AES256 -ServicePrincipalName `$SPN
+`$DomainInfo = Get-ADDomain
+`$ADCompAcct = Get-ADComputer -Identity `$ADCompAcctName
+
+`$ADDomainName = `$DomainInfo.DNSRoot
+`$ADNetBiosDomainName = `$DomainInfo.NetBIOSName
+`$ADForestName = `$DomainInfo.Forest
+`$ADDomainGuid = `$DomainInfo.ObjectGUID.Guid
+`$ADDomainSid = `$DomainInfo.DomainSID.value
+`$ADAzureStorageSid = `$ADCompAcct.SID.value
+`$ADSamAcctName = `$ADCompAcct.SamAccountName -replace ".{1}$"
+`$inputForAzure1 = `@`"
+Set-AzStorageAccount ````
+        -ResourceGroupName `$ResourceGroupName ````
+        -Name `$StorageAcctName ````
+        -EnableActiveDirectoryDomainServicesForFile ```$true ````
+        -ActiveDirectoryDomainName `$ADDomainName ````
+        -ActiveDirectoryNetBiosDomainName `$ADNetBiosDomainName ````
+        -ActiveDirectoryForestName `$ADForestName ````
+        -ActiveDirectoryDomainGuid `$ADDomainGuid ````
+        -ActiveDirectoryDomainsid `$ADDomainSid ````
+        -ActiveDirectoryAzureStorageSid `$ADAzureStorageSid ````
+        -ActiveDirectorySamAccountName `$ADSamAcctName ````
+        -ActiveDirectoryAccountType Computer 
+`"`@
+
+Get-ADComputer -Identity `$ADCompAcctName | Set-ADAccountPassword -Reset -NewPassword (ConvertTo-SecureString -AsPlainText `$AzKerbKey -Force)
+
+Write-Host "COPY THE FOLLOWING for use on the Azure Side......." -ForegroundColor Cyan
+Write-Host "(Also Copied to the local Clipboard)"
+Write-Host "--------------------------------------------------------------------"
+`$inputForAzure1
+Set-Clipboard -Value `$inputForAzure1
+"@
+
+Write-Host "COPY THE FOLLOWING for use on your Active Directory side......" -ForegroundColor Cyan
+Write-Host "(Also Copied to the local Clipboard)"
+Write-Host "--------------------------------------------------------------------"
+$inputForAD1
+Set-Clipboard -Value $inputForAD1
+
+#####################################################################################################################
+#                              2.   ACTIVE DIRECTORY ACTIONS - Confirm Azure Storage Account configured
+#####################################################################################################################
+
+#  RUN OUTPUT FROM ABOVE on an AD joined system with appropriate permissions to create and modify a computer
+#  object in the supplied OU.
+
+
+#####################################################################################################################
+#                              (confirm)   AZURE ACTIONS - Confirm Azure Storage Account configured
+#####################################################################################################################
+
+# Get the target storage account
+$storageaccount = Get-AzStorageAccount `
+        -ResourceGroupName $ResourceGroupName `
+        -Name $StorageAccountName
+
+# List the directory service of the selected service account - Should return "AD"
+$storageAccount.AzureFilesIdentityBasedAuth.DirectoryServiceOptions
+
+# List the directory domain information if the storage account has enabled AD DS authentication for file shares
+$storageAccount.AzureFilesIdentityBasedAuth.ActiveDirectoryProperties
+
+#####################################################################################################################
+#                   (optional)   ACTIVE DIRECTORY ACTIONS - Install AzFilesHybrid module and run Debug
+#####################################################################################################################
+$inputForAD2 = @"
+`$StorageAccountName = `"$StorageAccountName`"
+`$ResourceGroupName = `"$ResourceGroupName`"
+
+Connect-AzAccount -Environment `"$Environment`" -Subscription `"$Subscription`"
+
+# Requires AzHybrid Module which is downloaded and extracted in current directory / module copied to your default Modules directory
+Invoke-WebRequest -Uri https://github.com/Azure-Samples/azure-files-samples/releases/download/v0.2.5/AzFilesHybrid.zip -UseBasicParsing -OutFile .\AzFilesHybrid.zip
+Expand-Archive -Path .\AzFilesHybrid.zip -Force
+cd AzFilesHybrid
+.\CopyToPSPath.ps1
+Import-Module -Name AzFilesHybrid
+Debug-AzStorageAccountAuth -StorageAccountName `$StorageAccountName -ResourceGroupName `$ResourceGroupName -Verbose
+"@
+
+Write-Host "COPY THE FOLLOWING for use on your Active Directory side......" -ForegroundColor Cyan
+Write-Host "(Also Copied to the local Clipboard)"
+Write-Host "--------------------------------------------------------------------"
+$inputForAD2
+Set-Clipboard -Value $inputForAD2

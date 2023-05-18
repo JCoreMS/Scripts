@@ -1,0 +1,73 @@
+﻿$AVDResourceIDs = "[/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/hp-eus2-AutoDeployTest,/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/hp-eus2-personal,/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/hp-AVDLab,/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/hp-eastus2-GenUser-AADJoin,/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/hp-eastus2-GraphicsIntensive,/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/hp-eastus2-HybridJoinVMs,/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/hp-eastus2-personal,/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/hp-eastus2-RemoteApps,/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/p-eastus2-SSO,/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Resources/providers/Microsoft.DesktopVirtualization/hostpools/hp-xcloud-va-USGov]"
+
+
+
+$ErrorActionPreference = 'Stop'
+
+# Object for collecting output
+$DeploymentScriptOutputs = @{}
+
+
+Class HPInfo{
+    [string]$HostPoolName
+    [string]$HostPoolResId
+    [array] $VMNames
+    [array] $VMResourceIDs
+}
+    
+
+$AllHPInfo = @()
+
+# =================================================================================================
+# AVD Host Pool RG Names
+# =================================================================================================
+Foreach ($itemID in $AVDResourceIDs) {
+    $AVDResourceRG = ($itemID -split '/')[4]
+    $SubID = ($itemID -split '/')[2]
+    $HostPools = Get-AzWvdHostPool -ResourceGroupName $AVDResourceRG -SubscriptionId $SubID
+
+    Foreach ($HostPool in $HostPools) {
+    	$currHostPool = New-Object HPInfo	
+        $VMResourceIDs = @()
+		$VMResourceRGIDs = @()
+		$VMNames = @()
+		$SessionHosts = (Get-AzWvdSessionHost -SubscriptionId $SubID -ResourceGroupName $AVDResourceRG -HostPoolName $HostPool.Name).Name
+        $HostPoolName = $HostPool.Name
+         $currHPInfo = @()       
+		foreach($sessionHost in $SessionHosts){
+            $VMCurr = ($sessionHost -split '/')[1]
+            If ($sessionHost -ne "") {
+                $DotLocation = $VMCurr.IndexOf('.')
+                If ($DotLocation -ne -1) { $VM = $VMCurr.Substring(0, $DotLocation)}
+                $VMResID = (Get-AzVM -Name $VM).Id
+                If($VMResID.Count -gt 0){
+					$VMNamePart = ($VMResID -split '/')[8]
+					$VMNames += $VMNamePart
+					$VMResourceIDs += $VMResID
+                }
+            }
+
+        }
+        $HostPoolNames += $HostPoolName
+        $HostPoolResIds += $HostPoolResIds
+        $HostPoolVMNames += [array]$VMNames
+        $HostPoolVMResIDs += [array]$VMResourceIDs
+
+        $currHostPool.HostPoolName = $HostPoolName
+        $currHostPool.HostPoolResId = $HostPoolResID
+        $currHostPool.VMNames = $VMNames
+        $currHostPool.VMResourceIDs = $VMResourceIDs
+
+        $AllHPinfo += $currHostPool     
+
+
+        
+    }
+}
+
+# Convert to JSON 
+$AllHPInfoJson = $AllHPinfo | Convertto-Json
+
+# Convert to String
+$AllHPInfoSring = $AllHPInfo.ToString()
+

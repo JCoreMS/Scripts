@@ -1,13 +1,25 @@
+##  UPDATED VERSION by JCore
+##   Downloads and extracts needed module and prompts for needed information. No cut and paste needed!
+
 #  Need Line of site to Domain Controller to run script for domain join 
 #  
 Install-Module az -Verbose -AllowClobber -Confirm:$true
+
 Import-module -Name ActiveDirectory
+
+# Download they needed Module per the documentation
+Write-Host "Downloading AzFilesHybrid module..."
+Invoke-WebRequest -Uri https://github.com/Azure-Samples/azure-files-samples/releases/download/v0.2.6/AzFilesHybrid.zip -OutFile .\AzFilesHybrid.zip
+Write-Host "Unzipping downloaded AzFilesHybrid modules..."
+Expand-Archive -Path .\AzFilesHybrid.zip -DestinationPath .\AzFilesHybrid -Verbose -Force
 
 # Change the execution policy to unblock importing AzFilesHybrid.psm1 module
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
 
 # Navigate to where AzFilesHybrid is unzipped and stored and run to copy the files into your path
+cd .\AzFilesHybrid
 .\CopyToPSPath.ps1
+
 
 # Import AzFilesHybrid module
 Import-Module -Name AzFilesHybrid

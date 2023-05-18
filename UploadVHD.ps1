@@ -13,9 +13,10 @@ If($Subs.count -gt 1){
 Foreach($Sub in $Subs){
     Write-Host ($Subs.Indexof($Sub)+1) "-" $Sub.Name
  }
-}
+
 $Selection = Read-Host "Subscription"
 $Selection = $Subs[$Selection-1]
+}
 Select-AzSubscription -SubscriptionObject $Selection
 
 # Get required parameters

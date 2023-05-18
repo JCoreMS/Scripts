@@ -15,3 +15,9 @@ Function Get-ExtensionError ($logfile) {
 $DomJoinLog = "C:\windows\debug\NetSetup.LOG"
 #$DomJoinLog = "C:\WindowsAzure\Logs\Plugins\Microsoft.Compute.JsonADDomainExtension\1.3.6\ADDomainExtension.log"
 Get-ExtensionError $DomJoinLog
+
+
+
+
+$logfile = "C:\windows\debug\NetSetup.LOG"
+Get-Content -Path $logfile
