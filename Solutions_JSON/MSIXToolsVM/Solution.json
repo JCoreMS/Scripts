@@ -28,14 +28,12 @@
         },
         "KeyVaultResourceId": {
             "type": "string",
-            "defaultValue": "/subscriptions/8a0ecebc-0e1d-4e8f-8cb8-8a92f49455b9/resourceGroups/rg-eastus2-AVDLab-Identity/providers/Microsoft.KeyVault/vaults/kv-eastus2-AVD-SSO-Certs",
             "metadata": {
                 "description": "The resource ID for the Key Vault containing the code signing certificate."
             }
         },
         "KeyVaultSecretUrl": {
             "type": "string",
-            "defaultValue": "https://kv-eastus2-avd-sso-certs.vault.azure.net/secrets/MSIXAppAttachLab/b1446c7025ce43839c1ce594770b7c84",
             "metadata": {
                 "description": "The Key Vault secret URL for the code signing certificate stored as a base64 secret."
             }
@@ -52,12 +50,10 @@
             "type": "securestring"
         },
         "StorageAccountName": {
-            "type": "string",
-            "defaultValue": "storeus2avdmsix"
+            "type": "string"
         },
         "SubnetName": {
-            "type": "string",
-            "defaultValue": "subnet-eastus2-AVDLab-Management"
+            "type": "string"
         },
         "Tags": {
             "type": "object",
@@ -68,12 +64,10 @@
             "defaultValue": "[utcNow('yyyyMMddhhmmss')]"
         },
         "VirtualNetworkName": {
-            "type": "string",
-            "defaultValue": "vnet-EastUS2-AVDLab"
+            "type": "string"
         },
         "VirtualNetworkResourceGroupName": {
-            "type": "string",
-            "defaultValue": "rg-eastus2-LandingZone"
+            "type": "string"
         },
         "VmName": {
             "type": "string",
@@ -87,7 +81,7 @@
             "defaultValue": "Standard_D2s_v3"
         },
         "VmUsername": {
-            "defaultValue": "jcore",
+            "defaultValue": "admin",
             "type": "string"
         }
     },

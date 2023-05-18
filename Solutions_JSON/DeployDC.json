@@ -4,7 +4,7 @@
     "parameters": {
         "adminUser": {
             "type": "string",
-            "defaultValue": "jcore",
+            "defaultValue": "admin",
             "metadata": {
                 "description": "Admin Username for Lab VM"
             }
@@ -50,14 +50,12 @@
         },
         "VNetAddressSpace": {
             "type": "string",
-            "defaultValue": "10.20.0.0/16",
             "metadata": {
                 "description": "Virtual Network Address Space in CIDR Format"
             }
         },
         "AD_DomainName_FQDN": {
             "type": "string",
-            "defaultValue": "corefamily.net",
             "metadata": {
                 "description": "Virtual Network Address Space in CIDR Format"
             }

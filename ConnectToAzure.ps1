@@ -15,24 +15,4 @@ $Selection = Read-Host "Subscription"
 $Selection = $Subs[$Selection-1]
 Select-AzSubscription -SubscriptionObject $Selection
 
-# ----------------------------------------------------------------
-
-$Deployment = "C:\GitRepo\AVDAlerts\solution.bicep"
-$paramFile = "C:\GitRepo\AVDAlerts\parameters_MAG.json"
-
-New-AzDeployment `
-  -Name "AVD-Alerts-Solution" `
-  -TemplateParameterFile $paramfile `
-  -Location "usgovvirginia" `
-  -TemplateFile $Deployment
-
-$Deployment = "C:\GitRepo\AVDAlerts\modules\deploymentScript.bicep"
-$paramFile = "C:\GitRepo\AVDAlerts\modules\deploymentScript.parameters.json"
-
-New-AzResourceGroupDeployment `
-    -Name "Test-Deployment-Script" `
-    -ResourceGroupName rg-avdmetrics-d-eastus2 `
-    -TemplateParameterFile $paramFile `
-    -TemplateFile $Deployment
-
 

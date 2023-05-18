@@ -1,7 +1,7 @@
 #  Need Line of site to Domain Controller to run script for domain join 
 #  
-#         Install-Module az -Verbose -AllowClobber -Confirm:$true
-#         Import-module -Name ActiveDirectory
+Install-Module az -Verbose -AllowClobber -Confirm:$true
+Import-module -Name ActiveDirectory
 
 # Change the execution policy to unblock importing AzFilesHybrid.psm1 module
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
@@ -53,7 +53,6 @@ $SpecifyOU = $SpecifyOU.ToUpper()
 
 
 # Define parameters, $StorageAccountName currently has a maximum limit of 15 characters
-$SubscriptionId = $Subscription.Id
 $ResourceGroupName = $StoreAcct.ResourceGroupName
 $StorageAccountName = $StoreAcct.StorageAccountName
 
@@ -62,6 +61,9 @@ If($SpecifyOU -eq 'Y'){
     $OuDistinguishedName = Read-Host "Input the exact Distinguised Name of the OU you'd like the machine account created in. (no quotes)"
     }
 Else{$OuDistinguishedName = $false}
+
+# AD Computer Account Name.
+$SamAccountName = Read-Host "Input AD Computer Account Name to use"
 
 # Specify the encryption agorithm used for Kerberos authentication. Default is configured as "'RC4','AES256'" which supports both 'RC4' and 'AES256' encryption.
 $EncryptionType = "AES256"
@@ -75,6 +77,7 @@ If($OuDistinguishedName -eq $false){
 Join-AzStorageAccountForAuth `
         -ResourceGroupName $ResourceGroupName `
         -StorageAccountName $StorageAccountName `
+        -SamAccountName $SamAccountName `
         -DomainAccountType 'ComputerAccount' `
         -EncryptionType $EncryptionType
 }
@@ -84,6 +87,7 @@ Else{
 Join-AzStorageAccountForAuth `
         -ResourceGroupName $ResourceGroupName `
         -StorageAccountName $StorageAccountName `
+        -SamAccountName $SamAccountName `
         -DomainAccountType 'ComputerAccount' `
         -OrganizationalUnitDistinguishedName $OuDistinguishedName `
         -EncryptionType $EncryptionType

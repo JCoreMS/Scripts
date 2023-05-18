@@ -1,0 +1,5 @@
+﻿$RDAgentFolder = 'C:\Program Files\Microsoft RDInfra'
+$Folder = (Get-ChildItem -Path 'C:\Program Files\Microsoft RDInfra' -Filter "RDAgent_1.*" -Recurse -Force -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1).Name
+& $RDAgentFolder'\'$Folder'\WVDAgentUrlTool.exe'
